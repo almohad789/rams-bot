@@ -41,8 +41,11 @@ jobs:
         id: bot
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           ROLE_ID: ${{ vars.ROLE_ID }}
           TEAM_ID: "LA"
+          EVENEMENTS_JOURS: "45"
         run: |
           if [ "${{ inputs.test }}" = "true" ]; then
             python runner.py --test
