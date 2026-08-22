@@ -42,7 +42,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           ROLE_ID: ${{ vars.ROLE_ID }}
-          TEAM_ID: "14"
+          TEAM_ID: "LA"
         run: |
           if [ "${{ inputs.test }}" = "true" ]; then
             python runner.py --test
