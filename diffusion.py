@@ -37,11 +37,13 @@ OVERRIDES: dict[str, list[str]] = {
 
 # Villes des matchs internationaux 2026 et diffuseur français associé.
 INTERNATIONAL = {
-    "london": (["France Télévisions (france.tv Sport)", "beIN SPORTS"], "match de Londres"),
-    "paris": (["France Télévisions", "beIN SPORTS"], "NFL Paris Game"),
-    "madrid": (["La Chaîne L'Équipe", "beIN SPORTS"], "match de Madrid"),
-    "munich": (["La Chaîne L'Équipe", "beIN SPORTS"], "match de Munich"),
-    "münchen": (["La Chaîne L'Équipe", "beIN SPORTS"], "match de Munich"),
+    "london": (["France Télévisions (france.tv Sport)", "beIN SPORTS"], "match de Londres", "confirmé"),
+    "paris": (["France Télévisions", "beIN SPORTS"], "NFL Paris Game", "confirmé"),
+    "madrid": (["La Chaîne L'Équipe", "beIN SPORTS"], "match de Madrid", "confirmé"),
+    "munich": (["La Chaîne L'Équipe", "beIN SPORTS"], "match de Munich", "confirmé"),
+    "münchen": (["La Chaîne L'Équipe", "beIN SPORTS"], "match de Munich", "confirmé"),
+    # Melbourne ne figurait pas dans les droits français annoncés pour 2026.
+    "melbourne": (["beIN SPORTS"], "match de Melbourne, diffuseur FR non annoncé", "probable"),
 }
 
 PRIME_TIME_US = {"NBC", "ESPN", "ABC", "ESPN/ABC", "Prime Video", "Amazon Prime Video", "Netflix"}
@@ -121,9 +123,9 @@ def diffusion_france(game) -> Diffusion:
     city = (game.venue_city or "").lower()
     country = (game.venue_country or "").lower()
     if game.neutral_site or (country and country not in ("usa", "us", "united states")):
-        for key, (names, label) in INTERNATIONAL.items():
+        for key, (names, label, niveau) in INTERNATIONAL.items():
             if key in city:
-                channels = [Channel(n, "confirmé", label) for n in names]
+                channels = [Channel(n, niveau, label) for n in names]
                 break
 
     # 2. Playoffs et Super Bowl.
