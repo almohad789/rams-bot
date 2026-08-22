@@ -45,7 +45,7 @@ jobs:
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           ROLE_ID: ${{ vars.ROLE_ID }}
           TEAM_ID: "LA"
-          EVENEMENTS_JOURS: "45"
+          EVENEMENTS_JOURS: "365"
         run: |
           if [ "${{ inputs.test }}" = "true" ]; then
             python runner.py --test
