@@ -22,6 +22,7 @@ import aiohttp
 import discord
 
 from diffusion import diffusion_france
+from evenements import synchroniser
 from nflverse import NflverseClient, pronostic
 from presentation import (
     embed_annonce,
@@ -37,6 +38,12 @@ log = logging.getLogger("runner")
 WEBHOOK = os.getenv("DISCORD_WEBHOOK_URL", "").strip()
 TEAM_ID = os.getenv("TEAM_ID", "LA").strip()          # abréviation nflverse des Rams
 ROLE_ID = os.getenv("ROLE_ID", "").strip()
+
+# Facultatif : sans ces deux valeurs, le bot poste les messages mais ne crée
+# aucun événement planifié. Un webhook seul n'en a pas le droit.
+BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "").strip()
+GUILD_ID = os.getenv("DISCORD_GUILD_ID", "").strip()
+EVENEMENTS_JOURS = int(os.getenv("EVENEMENTS_JOURS", "45"))
 
 ANNONCE_HEURES = float(os.getenv("ANNONCE_HEURES", "48"))
 RAPPEL_MINUTES = float(os.getenv("RAPPEL_MINUTES", "75"))
@@ -140,6 +147,20 @@ async def executer(mode_test: bool = False) -> None:
             )
             log.info("message de test envoyé")
             return
+
+        # ------------------------------------------- événements planifiés
+        async def enrichir(game):
+            h2h, pred, _ = await dossier(client, game)
+            return h2h, pred
+
+        try:
+            if await synchroniser(
+                session, BOT_TOKEN, GUILD_ID, matchs, TEAM_ID, etat,
+                maintenant, horizon_jours=EVENEMENTS_JOURS, enrichir=enrichir,
+            ):
+                modifie = True
+        except Exception as exc:
+            log.warning("synchronisation des événements impossible : %s", exc)
 
         # -------------------------------------------------------- mode normal
         for game in matchs:
