@@ -1,0 +1,60 @@
+name: Bot Rams
+
+on:
+  schedule:
+    # Toutes les 15 minutes. GitHub applique cet horaire au mieux,
+    # avec parfois 10 a 20 minutes de retard aux heures chargees.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Poster un message de test tout de suite"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bot-rams
+  cancel-in-progress: false
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer les dependances
+        run: pip install -r requirements.txt
+
+      - name: Executer le bot
+        id: bot
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ROLE_ID: ${{ vars.ROLE_ID }}
+          TEAM_ID: "14"
+        run: |
+          if [ "${{ inputs.test }}" = "true" ]; then
+            python runner.py --test
+          else
+            python runner.py
+          fi
+
+      - name: Sauvegarder ce qui a ete poste
+        if: steps.bot.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git commit -m "Mise a jour des messages postes"
+          git push

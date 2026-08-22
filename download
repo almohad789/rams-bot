@@ -1,0 +1,18 @@
+# Secrets : ne jamais publier
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Editeurs et OS
+.vscode/
+.idea/
+.DS_Store
+
+# Attention : state.json n'est PAS ignore.
+# Dans la version GitHub Actions, le workflow le commite pour se souvenir
+# des messages deja postes d'une execution a l'autre.
