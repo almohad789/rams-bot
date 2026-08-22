@@ -244,3 +244,63 @@ def embed_rapport(game: Game, team_id: str, summary: dict) -> discord.Embed:
 
     embed.set_footer(text="Rapport de fin de match · données ESPN")
     return embed
+
+
+def embed_rapport_nflverse(
+    game: Game,
+    team_id: str,
+    joueurs: dict[str, list[str]],
+    bilan_saison: str = "",
+) -> discord.Embed:
+    """Rapport de fin de match construit à partir des données nflverse."""
+    nous, eux = game.side(team_id), game.other(team_id)
+    score_nous = nous.score if nous.score is not None else 0
+    score_eux = eux.score if eux.score is not None else 0
+
+    if score_nous > score_eux:
+        couleur, entete = COULEUR_VICTOIRE, "✅ Victoire des Rams"
+    elif score_nous < score_eux:
+        couleur, entete = COULEUR_DEFAITE, "❌ Défaite des Rams"
+    else:
+        couleur, entete = COULEUR_NULLE, "🤝 Match nul"
+
+    ecart = abs(score_nous - score_eux)
+    if ecart == 0:
+        commentaire = "Personne ne prend l'avantage."
+    elif ecart <= 3:
+        commentaire = "Décidé au bout du suspense."
+    elif ecart <= 10:
+        commentaire = "Match maîtrisé sans être tranquille."
+    else:
+        commentaire = "Écart net au tableau d'affichage."
+
+    embed = discord.Embed(
+        title=entete,
+        description=f"**{nous.name} {score_nous} : {score_eux} {eux.name}**\n"
+                    f"{game.season_label} · {commentaire}",
+        color=couleur,
+    )
+    if eux.logo:
+        embed.set_thumbnail(url=eux.logo)
+
+    contexte = [f"Total inscrit : {score_nous + score_eux} points"]
+    if bilan_saison:
+        contexte.append(f"Bilan des Rams sur la saison : **{bilan_saison}**")
+
+    cotes = getattr(game, "_odds", None) or {}
+    spread = cotes.get("spread")
+    if spread is not None:
+        ligne = float(spread) if game.is_home(team_id) else -float(spread)
+        marge = (score_nous - score_eux) - ligne
+        contexte.append(
+            f"Face au spread : {'couvert' if marge > 0 else 'non couvert'} "
+            f"({marge:+.1f} par rapport à la ligne)"
+        )
+    embed.add_field(name="📈 Le match en chiffres", value="\n".join(contexte), inline=False)
+
+    for abbr in (nous.abbr, eux.abbr):
+        if joueurs.get(abbr):
+            embed.add_field(name=f"⭐ {abbr}", value="\n".join(joueurs[abbr]), inline=True)
+
+    embed.set_footer(text=(f"{game.venue} · " if game.venue else "") + "Données nflverse")
+    return embed
