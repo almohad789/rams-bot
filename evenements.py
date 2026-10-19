@@ -48,8 +48,43 @@ def _lieu(game, team_id: str) -> str:
 
 def _nom(game, team_id: str) -> str:
     eux = game.other(team_id)
-    prefixe = "🐏 Rams vs" if game.is_home(team_id) else "🐏 Rams à"
-    return f"{prefixe} {eux.name}"[:100]
+    return f"🐏 Rams vs {eux.name}"[:100]
+
+
+ANCIEN_PREFIXE = "🐏 Rams à "
+NOUVEAU_PREFIXE = "🐏 Rams vs "
+
+
+async def renommer_anciens(session: aiohttp.ClientSession, token: str, guild_id: str) -> int:
+    """Passe les événements déjà créés de « Rams à X » à « Rams vs X ».
+
+    state.json ne garde pas l'identifiant Discord des événements : on relit donc
+    la liste du serveur et on corrige ceux qui portent encore l'ancien titre.
+    Une fois tout corrigé, ce passage ne fait plus qu'une simple lecture.
+    """
+    entetes = {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
+    base = f"{API}/guilds/{guild_id}/scheduled-events"
+    async with session.get(base, headers=entetes) as resp:
+        if resp.status != 200:
+            log.warning("lecture des événements impossible (%s), renommage reporté", resp.status)
+            return 0
+        evenements = await resp.json()
+
+    renommes = 0
+    for ev in evenements:
+        nom = ev.get("name") or ""
+        if not nom.startswith(ANCIEN_PREFIXE):
+            continue
+        nouveau = (NOUVEAU_PREFIXE + nom[len(ANCIEN_PREFIXE):])[:100]
+        async with session.patch(f"{base}/{ev['id']}", json={"name": nouveau}, headers=entetes) as resp:
+            if resp.status == 200:
+                renommes += 1
+                log.info("événement renommé : %s", nouveau)
+            else:
+                log.warning("renommage refusé (%s) pour %s", resp.status, nom)
+                break
+        await asyncio.sleep(1)
+    return renommes
 
 
 def _description(game, team_id: str, h2h=None, pred=None) -> str:
@@ -147,6 +182,11 @@ async def synchroniser(
     """Crée les événements manquants pour les matchs à venir. Renvoie True si l'état a changé."""
     if not token or not guild_id:
         return False
+
+    try:
+        await renommer_anciens(session, token, guild_id)
+    except Exception as exc:
+        log.warning("renommage des anciens événements impossible : %s", exc)
 
     modifie = False
     crees = 0
